@@ -8,7 +8,8 @@ A real-time chat application built with the MERN stack (MongoDB, Express, React,
 **Live Site:** [https://chatapp-b2cp.onrender.com]
 
 <!-- Put a link to your video recording here -->
-**Video Demo:** [Insert Video Link Here]
+**Video Demo:**
+[https://github.com/user-attachments/assets/15668c22-95c1-47a0-b42b-54d87bef54a9]
 
 
 ## ✨ Features
