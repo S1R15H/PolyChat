@@ -2,11 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
+:root{
+  --bgcolor: #c9e8c9;
+}
+
 .str-chat__channel {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(to bottom, #c9e8c9, #b7e7bb);
+  background: var(--bgcolor);
   height: 100%;
 }
 

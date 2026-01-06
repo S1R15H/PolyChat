@@ -5,8 +5,6 @@ import {THEMES} from '../constants';
 const ThemeSelector = () => {
     const {theme, setTheme} = useThemeStore();
 
-
-
   return (
     <div className="dropdown dropdown-end">
         <button tabIndex={0} className="btn btn-ghost btn-circle">

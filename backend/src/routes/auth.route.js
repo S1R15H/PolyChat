@@ -1,5 +1,5 @@
 import express from 'express';
-import {signup, login, logout, onboard} from '../controllers/auth.controller.js';
+import {signup, login, logout, onboard, forgotPassword, resetPassword} from '../controllers/auth.controller.js';
 import {protectRoute} from '../middleware/auth.middleware.js';
 
 const router = express.Router()
@@ -10,6 +10,8 @@ router.post("/logout", logout);
 
 router.post("/onboarding", protectRoute,  onboard);
 
+router.post("/forgot-password", forgotPassword);
+router.post("/reset-password/:token", resetPassword);
 // forget-password and reset-password routes can be added here
 
 // check if the user is logged in

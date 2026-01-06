@@ -5,6 +5,9 @@ import {useQuery} from "@tanstack/react-query";
 import {getStreamToken} from "../lib/api.js";
 import ChatLoader from "../components/ChatLoader.jsx";
 import CallButton from "../components/CallButton.jsx";
+import {useThemeStore} from "../store/useThemeStore.js";
+import {THEMES} from "../constants/index.js";
+
 
 import{
   Channel,
@@ -17,10 +20,15 @@ import{
 } from "stream-chat-react";
 import { StreamChat } from "stream-chat";
 import toast from "react-hot-toast";
+import ThemeSelector from "../components/ThemeSelector.jsx";
 
 const STREAM_API_KEY = import.meta.env.VITE_STREAM_API_KEY;
 
+
 const ChatPage = () => {
+
+  const {theme} = useThemeStore();
+
   const {id:targetUserId} = useParams();
 
   const[chatClient, setChatClient] = useState(null);
@@ -82,6 +90,11 @@ const ChatPage = () => {
   }
 
   if(loading || !chatClient || !channel) return <ChatLoader/>;
+
+  const root = document.documentElement;
+  const currentTheme = THEMES.find(t => t.name === theme);
+
+  root.style.setProperty('--bgcolor', currentTheme?.colors[2]);
 
   return (
     <div className="h-[93vh]">

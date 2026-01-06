@@ -12,13 +12,16 @@ import CallPage from './pages/CallPage.jsx'
 import ChatPage from './pages/ChatPage.jsx'
 import OnboardingPage from './pages/OnboardingPage.jsx'
 import { useThemeStore } from './store/useThemeStore.js'
+import FriendsPage from './pages/FriendsPage.jsx'
+import ForgotPasswordPage from './pages/ForgotPasswordPage.jsx'
+import ResetPasswordPage from './pages/ResetPasswordPage.jsx'
 
 const App = () => {
   const {isLoading, authUser} = useAuthUser();
   const {theme} = useThemeStore();
 
   const isAuthenticated = Boolean(authUser);
-  const isOnboarded = authUser?.isOnboarded
+  const isOnboarded = authUser?.isOnboarded;
 
   if (isLoading) return <PageLoader />
   
@@ -30,10 +33,21 @@ const App = () => {
               <HomePage/>
             </Layout>
             ) : (<Navigate to={!isAuthenticated ? "/login" : "/onboarding"} />)} />
+          <Route path="/friends" element={isAuthenticated && isOnboarded ? (
+            <Layout showSidebar={true}>
+              <FriendsPage/>
+            </Layout>
+            ) : (<Navigate to={!isAuthenticated ? "/login" : "/onboarding"} />)} />
           <Route path="/signup" element={!isAuthenticated ? <SignUpPage /> : <Navigate to={
               isOnboarded ? "/" : "/onboarding"
             }/>} />
           <Route path="/login" element={!isAuthenticated ?<LoginPage /> : <Navigate to={
+              isOnboarded ? "/" : "/onboarding"
+            }/>} />
+          <Route path="/forgot-password" element={!isAuthenticated ? <ForgotPasswordPage /> : <Navigate to={
+              isOnboarded ? "/" : "/onboarding"
+            }/>} />
+          <Route path="/reset-password/:token" element={!isAuthenticated ? <ResetPasswordPage /> : <Navigate to={
               isOnboarded ? "/" : "/onboarding"
             }/>} />
           <Route path="/notifications" element={isAuthenticated && isOnboarded ? (

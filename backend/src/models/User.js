@@ -40,6 +40,8 @@ const userSchema = new mongoose.Schema({
         type: Boolean,
         default: false,
     },
+    resetPasswordToken: {type: String, default:""},
+    resetPasswordExpires: {type: Date},
     friends: [
         {
             type: mongoose.Schema.Types.ObjectId,

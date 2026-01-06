@@ -1,6 +1,8 @@
 import User from '../models/User.js';
 import jwt from 'jsonwebtoken';
 import { upsertStreamUser } from '../lib/stream.js';
+import crypto from 'node:crypto';
+import {Resend} from 'resend';
 
 export async function signup(req, res) {
     const {email, password, fullName} = req.body;
@@ -144,4 +146,76 @@ export async function onboard(req, res) {
         console.error("Onboarding error:", error);
         res.status(500).json({message: "Internal Server Error"});
     }
+}
+
+export async function forgotPassword(req, res) {
+    const { email } = req.body;
+
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Generate a secure random token
+    const token = crypto.randomBytes(20).toString("hex");
+
+    // Set token and expiration (e.g., 1 hour from now)
+    user.resetPasswordToken = token;
+    user.resetPasswordExpires = Date.now() + 3600000; // 1 hour
+
+    await user.save();
+
+    const resend = new Resend(process.env.RESEND_API_KEY);
+
+     const protocol = req.protocol; // 'http' or 'https'
+    const host = req.get('host'); // e.g., 'example.com' or 'localhost:5173'
+    const resetUrl = `${protocol}://${host}/reset-password/${token}`;
+
+    const {data, error} = await resend.emails.send({
+        from: 'ChatApp <do-not-reply@sirishgurung.com>',
+        to: user.email,
+        subject: "Password Reset Request",
+        html: `<p>You are receiving this because you (or someone else) have requested the reset of the password for your account.<br/><br/> Please click on the following link, or paste this into your browser to complete the process:<br/><br/><span> ${resetUrl} </span> <br/><br/> If you did not request this, please ignore this email and your password will remain unchanged.<br/></p>`
+    });
+
+    if (error) {
+        return res.status(400).json({ error });
+    }
+
+    res.status(200).json({ data });
+
+  } catch (err) {
+    console.log("Error in forgotPassword controller:", err);
+    res.status(500).json({ message: "Internal Server error" });
+  }
+}
+
+export async function resetPassword(req, res) {
+    const { token } = req.params;
+  const { password } = req.body;
+
+  try {
+    // Find user with this token and check if it hasn't expired ($gt = greater than)
+    const user = await User.findOne({
+      resetPasswordToken: token,
+      resetPasswordExpires: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: "Password reset token is invalid or has expired" });
+    }
+
+    user.password = password;
+    // Clear the reset fields
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+
+    await user.save();
+
+    res.status(200).json({ message: "Password updated successfully" });
+  } catch (err) {
+    console.log("Error in resetPassword controller:", err);
+    res.status(500).json({ message: "Internal Server error" });
+  }
 }
