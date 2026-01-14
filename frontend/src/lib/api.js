@@ -24,10 +24,10 @@ export const resetPassword = async ({ token, password }) => {
 }
 
 export const getAuthUser = async () => {
-    try{
+    try {
         const res = await axiosInstance.get("/auth/me");
         return res.data;
-    }catch(error){
+    } catch (error) {
         console.log("Error in getAuthUser:", error);
         return null;
     }
@@ -64,5 +64,18 @@ export async function acceptFriendRequest(requestId) {
 }
 export async function getStreamToken() {
     const response = await axiosInstance.get("/chat/token");
+    return response.data;
+}
+export async function getTeachers() {
+    const response = await axiosInstance.get("/users/teachers");
+    return response.data;
+}
+export async function chatWithAI(channelId, message, targetLanguage) {
+    const response = await axiosInstance.post("/ai/chat", { channelId, message, targetLanguage });
+    return response.data;
+}
+
+export async function wakeAI(channelId) {
+    const response = await axiosInstance.post("/ai/wake", { channelId });
     return response.data;
 }

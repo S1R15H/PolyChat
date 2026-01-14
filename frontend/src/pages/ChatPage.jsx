@@ -1,15 +1,19 @@
-import {useParams} from "react-router";
-import {useState, useEffect} from "react";
+import { useParams } from "react-router";
+import { useState, useEffect } from "react";
 import useAuthUser from "../hooks/useAuthUser.js";
-import {useQuery} from "@tanstack/react-query";
-import {getStreamToken} from "../lib/api.js";
+import { useQuery } from "@tanstack/react-query";
+import { getStreamToken, chatWithAI, wakeAI } from "../lib/api.js";
 import ChatLoader from "../components/ChatLoader.jsx";
 import CallButton from "../components/CallButton.jsx";
-import {useThemeStore} from "../store/useThemeStore.js";
-import {THEMES} from "../constants/index.js";
+import { useThemeStore } from "../store/useThemeStore.js";
+import { THEMES } from "../constants/index.js";
+import { MessageSquareText } from "lucide-react";
+
+const AI_AGENT_ID = "64b6e5b8e9b0e2b9c8b7f3a1";
+const LANGUAGES = ["English", "German", "French", "Italian", "Portuguese", "Hindi", "Spanish", "Thai"];
 
 
-import{
+import {
   Channel,
   ChannelHeader,
   MessageList,
@@ -27,58 +31,112 @@ const STREAM_API_KEY = import.meta.env.VITE_STREAM_API_KEY;
 
 const ChatPage = () => {
 
-  const {theme} = useThemeStore();
+  const { theme } = useThemeStore();
 
-  const {id:targetUserId} = useParams();
+  const { id: targetUserId } = useParams();
 
-  const[chatClient, setChatClient] = useState(null);
+  const [chatClient, setChatClient] = useState(null);
   const [channel, setChannel] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [targetLanguage, setTargetLanguage] = useState("Spanish");
+  const isAI = targetUserId === AI_AGENT_ID;
 
-  const {authUser} = useAuthUser();
+  const { authUser } = useAuthUser();
 
-  const {data:tokenData} = useQuery({
+  const { data: tokenData } = useQuery({
     queryKey: ["streamToken"],
     queryFn: getStreamToken,
     enabled: !!authUser, //this will only run if authUser is available
-});
+  });
 
-  useEffect(()=> {
-    const initChat = async () => {
-      if(!tokenData?.token || !authUser) return;
+  // 1. Connection Effect: Connects user to Stream Chat (Run once per user/token)
+  useEffect(() => {
+    if (!tokenData?.token || !authUser) return;
 
-      try{
-        console.log("Initializing stream chat client...");
+    const client = StreamChat.getInstance(STREAM_API_KEY);
+    let isMounted = true;
 
-        const client = StreamChat.getInstance(STREAM_API_KEY);
+    const connect = async () => {
+      try {
+        if (client.userID !== authUser._id) {
+          if (client.userID) await client.disconnectUser();
+          await client.connectUser({
+            id: authUser._id,
+            name: authUser.fullName,
+            image: authUser.profilePic,
+          }, tokenData.token);
+        }
 
-        await client.connectUser({
-          id: authUser._id,
-          name: authUser.fullName,
-          image: authUser.profilePic,
-        },tokenData.token);
+        if (isMounted) {
+          setChatClient(client);
+        }
+      } catch (error) {
+        console.error("Error connecting user:", error);
+        toast.error("Failed to connect to chat.");
+      }
+    };
 
+    connect();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [authUser, tokenData]);
+
+  // 2. Channel Effect: Switches channel when targetUserId changes
+  useEffect(() => {
+    if (!chatClient || !targetUserId) return;
+
+    const loadChannel = async () => {
+      setLoading(true);
+      try {
         const channelId = [authUser._id, targetUserId].sort().join("-");
-
-        const currChannel = client.channel("messaging", channelId, {
-          members: [authUser._id, targetUserId], 
+        const currChannel = chatClient.channel("messaging", channelId, {
+          members: [authUser._id, targetUserId],
         });
 
         await currChannel.watch();
-        setChatClient(client);
         setChannel(currChannel);
-      }catch(error){
-        console.error("Error initializing chat client:", error);
-        toast.error("Failed to initialize chat. Please try again later.");
-      }finally{
+
+        // Cold Start / Welcome Message Check
+        if (targetUserId === AI_AGENT_ID && currChannel.state.messages.length === 0) {
+          wakeAI(channelId);
+        }
+      } catch (error) {
+        console.error("Error loading channel:", error);
+        toast.error("Failed to load chat channel.");
+      } finally {
         setLoading(false);
       }
     };
-    initChat();
-  },[tokenData, authUser, targetUserId]);
+
+    loadChannel();
+  }, [chatClient, targetUserId, authUser]);
+
+  // Listen for messages to AI
+  useEffect(() => {
+    if (!channel || !isAI) return;
+
+    const handleNewMessage = async (event) => {
+      if (event.user && event.user.id === authUser._id) {
+        // User sent a message to AI
+        try {
+          await chatWithAI(channel.id, event.message.text, targetLanguage);
+        } catch (err) {
+          console.error("Failed to chat with AI", err);
+        }
+      }
+    };
+
+    channel.on('message.new', handleNewMessage);
+
+    return () => {
+      channel.off('message.new', handleNewMessage);
+    };
+  }, [channel, isAI, targetLanguage, authUser]);
 
   const handleVideoCall = () => {
-    if(channel){
+    if (channel) {
       const callUrl = `${window.location.origin}/call/${channel.id}`;
 
       channel.sendMessage({
@@ -89,7 +147,7 @@ const ChatPage = () => {
     }
   }
 
-  if(loading || !chatClient || !channel) return <ChatLoader/>;
+  if (loading || !chatClient || !channel) return <ChatLoader />;
 
   const root = document.documentElement;
   const currentTheme = THEMES.find(t => t.name === theme);
@@ -101,17 +159,31 @@ const ChatPage = () => {
       <Chat client={chatClient}>
         <Channel channel={channel}>
           <div className="w-full relative">
-            <CallButton handleVideoCall={handleVideoCall}/>
+            {!isAI && <CallButton handleVideoCall={handleVideoCall} />}
+
+            {isAI && (
+              <div className="absolute top-3 right-3 z-10 p-1.5 rounded-lg shadow-md border border-base-300 flex items-center gap-2">
+                <MessageSquareText className="size-4 opacity-70" />
+                <select
+                  value={targetLanguage}
+                  onChange={(e) => setTargetLanguage(e.target.value)}
+                  className="select bg-accent select-sm select-bordered w-full "
+                >
+                  {LANGUAGES.map(lang => <option key={lang} value={lang}>{lang}</option>)}
+                </select>
+              </div>
+            )}
+
             <Window>
-              <ChannelHeader/>
+              <ChannelHeader />
               <MessageList />
               <MessageInput focus />
             </Window>
           </div>
-          <Thread/>
+          <Thread />
         </Channel>
       </Chat>
-      
+
     </div>
   )
 }
