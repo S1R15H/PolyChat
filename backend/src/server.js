@@ -18,8 +18,20 @@ const PORT = process.env.PORT;
 
 const __dirname = path.resolve();
 
-app.use(helmet()); // Security Headers
-
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'", "'unsafe-inline'", "https://challenges.cloudflare.com"],
+            styleSrc: ["'self'", "'unsafe-inline'"],
+            frameSrc: ["'self'", "https://challenges.cloudflare.com"],
+            imgSrc: ["'self'", "data:", "https://avatar.iran.liara.run", "https://flagcdn.com", "https://robohash.org", "https://getstream.io", "https://*.stream-io-cdn.com"],
+            connectSrc: ["'self'", "https://challenges.cloudflare.com", "https://*.stream-io-api.com", "wss://*.stream-io-api.com", "https://*.stream-io-video.com", "wss://*.stream-io-video.com", "https://cdn.jsdelivr.net"],
+            mediaSrc: ["'self'", "https://*.stream-io-cdn.com", "https://*.stream-io-video.com"],
+            workerSrc: ["'self'", "blob:"],
+        },
+    },
+})); // Security Headers
 app.use(cors({
     origin: "http://localhost:5173",
     credentials: true, // allow session cookies from browser to pass through

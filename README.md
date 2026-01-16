@@ -19,6 +19,7 @@ A real-time chat application built with the MERN stack (MongoDB, Express, React,
 - **Friend System**: Send and receive friend requests.
 - **Theming**: Multiple color themes configurable by the user (powered by DaisyUI).
 - **Profile Management**: Update user profile, avatar, and settings.
+- [**AI Language Tutor**](docs/ai_bot_feature.md): Practice 8 languages with an AI bot (Llama 3.2).
 - **Responsive Design**: Works on desktop and mobile.
 
 ## 🛠️ Tech Stack

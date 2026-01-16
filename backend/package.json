@@ -23,7 +23,7 @@
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.13.2",
-    "ollama": "^0.6.3",
+    "axios": "^1.7.9",
     "resend": "^6.6.0",
     "stream-chat": "^8.60.0"
   },

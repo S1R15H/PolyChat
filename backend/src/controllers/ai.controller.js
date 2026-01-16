@@ -29,7 +29,12 @@ export const chat = async (req, res) => {
         - If they speak in ${targetLanguage}, correct their grammar if needed and reply in ${targetLanguage}.
         - If they speak in English, answer their question or translate for them, but encourage them to use ${targetLanguage}.
         - Keep your replies concise and friendly.
-        - You are chatting in a messaging app, so be informal but educational.`;
+        - You are chatting in a messaging app, so be informal but educational.
+        
+        SAFETY GUIDELINES:
+        - Do NOT generate any harmful, explicit, offensive, or sexually suggestive content.
+        - Do NOT swear or use profanity.
+        - If the user asks for inappropriate content, politely refuse and steer the conversation back to language learning.`;
 
         const channel = streamClient.channel("messaging", channelId);
 

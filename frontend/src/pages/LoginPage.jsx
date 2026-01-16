@@ -1,19 +1,28 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { ShipWheelIcon } from "lucide-react";
 import useLogin from "../hooks/useLogin.js";
 import { Link } from "react-router";
+import { Turnstile } from "@marsidev/react-turnstile";
 
 const LoginPage = () => {
+  const turnstileRef = useRef();
   const [loginData, setLoginData] = useState({
-    email:"",
+    email: "",
     password: "",
+    captchaToken: "",
   });
 
-  const {isPending, error, loginMutation} = useLogin();
+  const { isPending, error, loginMutation } = useLogin();
 
-  const handleLogin = (e) =>{
+  const handleLogin = (e) => {
     e.preventDefault();
-    loginMutation(loginData);
+    loginMutation(loginData, {
+      onError: () => {
+        // Reset CAPTCHA on failure so user can try again
+        turnstileRef.current?.reset();
+        setLoginData(prev => ({ ...prev, captchaToken: "" }));
+      }
+    });
   }
 
   return (
@@ -23,9 +32,9 @@ const LoginPage = () => {
         <div className="w-full lg:w-1/2 p-4 sm:p-8 flex flex-col">
           {/* LOGO */}
           <div className="mb-4 flex items-center justify-start gap-2">
-            <ShipWheelIcon className="size-9 text-primary"/>
+            <ShipWheelIcon className="size-9 text-primary" />
             <span className="text-3xl font-bold font-mono bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary tracking-wider">
-              ChatApp
+              PolyChat
             </span>
           </div>
 
@@ -33,7 +42,7 @@ const LoginPage = () => {
           {error && (
             <div className="alert alert-error mb-4">
               <span>{error.response.data.message}</span>
-              </div>
+            </div>
           )}
 
           <div className="w-full">
@@ -58,9 +67,9 @@ const LoginPage = () => {
                       onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
                       required
                     />
-                </div>
+                  </div>
 
-                <div className="form-control w-full space-y-2">
+                  <div className="form-control w-full space-y-2">
                     <div className="flex justify-between items-center">
                       <label className="label">
                         <span className="label-text">Password</span>
@@ -79,7 +88,22 @@ const LoginPage = () => {
                     />
                   </div>
 
-                   <button type="submit" className="btn btn-primary w-full" disabled={isPending}>
+                  {/* TURNSTILE CAPTCHA */}
+                  <div className="form-control w-full space-y-2">
+                    <Turnstile
+                      ref={turnstileRef}
+                      siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY || "your_site_key_here"}
+                      onSuccess={(token) => setLoginData({ ...loginData, captchaToken: token })}
+                      onExpire={() => setLoginData({ ...loginData, captchaToken: "" })}
+                      onError={(errorCode) => console.error("Turnstile Error Code:", errorCode)}
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="btn btn-primary w-full"
+                    disabled={isPending || !loginData.captchaToken}
+                  >
                     {isPending ? (
                       <>
                         <span className="loading loading-spinner loading-xs"></span>
@@ -98,11 +122,11 @@ const LoginPage = () => {
                       </Link>
                     </p>
                   </div>
-              </div>
+                </div>
               </div>
             </form>
           </div>
-           </div>
+        </div>
         {/* IMAGE SECTION */}
         <div className="hidden lg:flex w-full lg:w-1/2 bg-primary/10 items-center justify-center">
           <div className="max-w-md p-8">
@@ -119,7 +143,7 @@ const LoginPage = () => {
             </div>
           </div>
         </div>
-    </div>
+      </div>
     </div>
   )
 };
