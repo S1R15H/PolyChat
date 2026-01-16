@@ -92,8 +92,81 @@ If you get a JSON response, it works!
     ```
     *(Ollama standard mode doesn't use keys, but our controller supports passing custom keys if you add a proxy like Nginx later. For now, it's open).*
 
-## 7. (Optional but Recommended) Secure It
+## 7. Secure It (Critical for Production)
 
-Right now, anyone with your IP can use your AI. To secure it:
-1.  **AWS Security Group**: Edit the inbound rule for Port 11434 to only allow the IP address of your `Render` backend (or wherever you deploy).
-2.  **Nginx Proxy**: Set up Nginx on the EC2 to verify the `x-api-key` header before passing requests to Ollama.
+Since Render uses dynamic IPs, you cannot easilywhitelist them in AWS Security Groups. The best way to secure your AI is using **Nginx** as a reverse proxy with an API Key.
+
+### A. Install Nginx
+On your EC2 instance:
+```bash
+sudo apt install nginx apache2-utils -y
+```
+
+### B. Configure Nginx
+Create a new config file:
+```bash
+sudo nano /etc/nginx/sites-available/ollama
+```
+
+Paste the following configuration (Replace `your-secret-key-here` with a strong password):
+
+```nginx
+server {
+    listen 80;
+    server_name _;
+
+    location / {
+        # 1. Check for API Key Header
+        if ($http_x_api_key != "your-secret-key-here") {
+            return 401; # Unauthorized
+        }
+
+        # 2. Proxy to Ollama (running locally)
+        proxy_pass http://localhost:11434;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+```
+*Note: In a real production setup, you should also set up SSL (HTTPS) using Certbot, but for backend-to-backend communication over a secure channel, this is a good start.*
+
+### C. Enable Site & Restart
+```bash
+# Disable default site
+sudo unlink /etc/nginx/sites-enabled/default
+
+# Enable our new site
+sudo ln -s /etc/nginx/sites-available/ollama /etc/nginx/sites-enabled/
+
+# Test configuration
+sudo nginx -t
+
+# Restart Nginx
+sudo systemctl restart nginx
+```
+
+### D. Update Firewall (UFW) & AWS
+Now that Nginx (Port 80) is handling traffic, we should **block external access to Port 11434** so no one bypasses the check.
+
+1.  **On EC2 (UFW)**:
+    ```bash
+    sudo ufw allow 22/tcp  # Allow SSH
+    sudo ufw allow 80/tcp  # Allow HTTP (Nginx)
+    # Do NOT allow 11434 globally
+    sudo ufw enable
+    ```
+2.  **On AWS Security Group**:
+    *   **Add Rule**: Custom TCP, Port `80`, Source `0.0.0.0/0` (Anywhere).
+    *   **Remove Rule**: Port `11434` (If you had it open to anywhere).
+
+### E. Update ChatApp Backend
+In your `backend/.env` (both local and on Render/Production):
+
+```env
+AI_SERVICE_URL=http://<YOUR-EC2-PUBLIC-IP>
+AI_SERVICE_KEY=your-secret-key-here
+```
+
+> [!IMPORTANT]
+> The value of `AI_SERVICE_KEY` in your `.env` file **MUST MATCH EXACTLY** the password you put in the Nginx config (`if ($http_x_api_key != "...")`). If they don't match, Nginx will block the request.
+
