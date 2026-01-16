@@ -7,22 +7,33 @@ The application uses a secure authentication system based on **JSON Web Tokens (
 3. This token is sent back to the client in a secure, HTTP-only cookie named `jwt`.
 4. Subsequent requests to protected routes include this cookie, which the `protectRoute` middleware verifies.
 
+### Security Enhancements
+*   **Cloudflare Turnstile**: Both Signup and Login forms are protected by CAPTCHA to prevent bot attacks. The frontend generates a token, and the backend verifies it with Cloudflare before processing credentials.
+
 ## Auth Flow Diagram
 
 ```mermaid
 sequenceDiagram
     participant C as Client
     participant S as Server
+    participant CF as Cloudflare
     participant DB as Database
 
     Note over C, S: Signup / Login Flow
-    C->>S: POST /api/auth/signup or /login
-    S->>DB: key/val check or create User
-    DB-->>S: User Data
-    S->>S: Sign JWT (7d expiry)
-    S-->>C: Set-Cookie jwt=token, HttpOnly, Secure
-    S-->>C: JSON Response { success: true, user: ... }
-
+    C->>CF: Solve Captcha
+    CF-->>C: Return Token
+    C->>S: POST /api/auth/signup (with captchaToken)
+    S->>CF: Verify Token (SiteVerify)
+    alt Invalid Token
+        S-->>C: 400 Bad Request (Bot detected)
+    else Valid Token
+        S->>DB: key/val check or create User
+        DB-->>S: User Data
+        S->>S: Sign JWT (7d expiry)
+        S-->>C: Set-Cookie jwt=token, HttpOnly, Secure
+        S-->>C: JSON Response { success: true, user: ... }
+    end
+```
     Note over C, S: Protected Route Flow
     C->>S: GET /api/some-protected-resource
     S->>S: protectRoute Middleware checks 'jwt' cookie

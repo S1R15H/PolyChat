@@ -13,13 +13,15 @@ A real-time chat application built with the MERN stack (MongoDB, Express, React,
 
 ## ✨ Features
 
-- **Authentication**: securely handle user signup, login, and logout using JWT and HTTP-Only cookies.
-- **Real-time Messaging**: Instant messaging supported by Stream Chat technology.
-- **Video Calls**: Integrated video calling functionality.
+- **Security**:
+    - **Cloudflare Turnstile**: CAPTCHA protection on Login/Signup.
+    - **Helmet CSP**: Strict Content Security Policy for XSS protection.
+    - **HTTP-Only Cookies**: Secure session management.
+- **AI Language Tutor**: Practice 8 languages with an AI bot (Llama 3.2).
+- **Video Calls**: Integrated video calling functionality (Stream SFU).
 - **Friend System**: Send and receive friend requests.
 - **Theming**: Multiple color themes configurable by the user (powered by DaisyUI).
 - **Profile Management**: Update user profile, avatar, and settings.
-- [**AI Language Tutor**](docs/ai_bot_feature.md): Practice 8 languages with an AI bot (Llama 3.2).
 - **Responsive Design**: Works on desktop and mobile.
 
 ## 🛠️ Tech Stack
@@ -29,7 +31,8 @@ A real-time chat application built with the MERN stack (MongoDB, Express, React,
 - TailwindCSS & DaisyUI
 - Zustand (State Management)
 - React Query (Data Fetching)
-- Stream Chat React SDK
+- Stream Chat & Video SDKs
+- Cloudflare Turnstile
 
 **Backend:**
 - Node.js & Express
@@ -37,6 +40,14 @@ A real-time chat application built with the MERN stack (MongoDB, Express, React,
 - Stream Chat SDK (Backend)
 - JWT (Authentication)
 - Nodemailer / Resend (Email Services)
+- **AI Service**: Ollama + Llama 3.2 (hosted on AWS EC2)
+
+## ☁️ Deployment
+
+We have detailed guides for deploying this application:
+
+1.  **[Render Deployment Guide](docs/render_deployment_guide.md)**: How to deploy the full-stack app to Render.
+2.  **[EC2 AI Service Setup](docs/ec2_setup_guide.md)**: How to host the Llama 3.2 model on AWS EC2.
 
 ## 🚀 Getting Started
 
